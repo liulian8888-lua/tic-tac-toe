@@ -6,13 +6,11 @@ This is a simple web-based Tic-Tac-Toe game built using HTML, CSS, and JavaScrip
 
 ```
 tic-tac-toe
-├── src
-│   ├── index.html       # The main HTML file that defines the game structure
-│   ├── styles
-│   │   └── style.css    # CSS file for styling the game
-│   └── scripts
-│       └── app.js       # JavaScript file containing the game logic
-└── README.md            # Documentation for the project
+├── index.html   # The main HTML file that defines the game structure
+├── style.css    # CSS file for styling the game
+├── scripts
+├── app.js       # JavaScript file containing the game logic
+└── README.md    # Documentation for the project
 ```
 
 ## How to Run the Game
