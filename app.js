@@ -28,6 +28,13 @@ function handleCellClick(event) {
   board[clickedCellIndex] = currentPlayer;
   clickedCell.textContent = currentPlayer;
 
+  // Apply color based on the current player
+  if (currentPlayer === 'X') {
+    clickedCell.style.backgroundColor = '#ffcccb'; // Light red for X
+  } else {
+    clickedCell.style.backgroundColor = '#add8e6'; // Light blue for O
+  }
+
   checkResult();
 }
 
@@ -64,7 +71,10 @@ function resetGame() {
   gameActive = true;
   currentPlayer = 'X';
   message.textContent = '';
-  cells.forEach(cell => (cell.textContent = ''));
+  cells.forEach(cell => {
+    cell.textContent = '';
+    cell.style.backgroundColor = ''; // Reset background color
+  });
   congratulations.classList.add('hidden');
   congratulations.style.display = 'none';
 }
