@@ -1,83 +1,79 @@
-const cells = document.querySelectorAll('.cell');
-const message = document.getElementById('message');
+const boardElement = document.getElementById('board');
+const winnerMessage = document.getElementById('winnerMessage');
+const congratulationsMessage = document.getElementById('congratulationsMessage');
 const resetButton = document.getElementById('reset');
-const congratulations = document.getElementById('congratulations');
+let size = 3; // Start with a 3x3 board
+let board = [];
 let currentPlayer = 'X';
-let board = ['', '', '', '', '', '', '', '', ''];
-let gameActive = true;
 
-const winningConditions = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6]
-];
+function initializeBoard() {
+    boardElement.innerHTML = '';
+    board = Array.from({ length: size }, () => Array(size).fill(''));
+    winnerMessage.textContent = '';
+    congratulationsMessage.textContent = '';
+
+    boardElement.style.gridTemplateColumns = `repeat(${size}, 50px)`;
+    boardElement.style.gridTemplateRows = `repeat(${size}, 50px)`;
+
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.row = i;
+            cell.dataset.col = j;
+            cell.addEventListener('click', handleCellClick);
+            boardElement.appendChild(cell);
+        }
+    }
+}
 
 function handleCellClick(event) {
-  const clickedCell = event.target;
-  const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+    const row = event.target.dataset.row;
+    const col = event.target.dataset.col;
 
-  if (board[clickedCellIndex] !== '' || !gameActive) {
-    return;
-  }
+    if (board[row][col] === '' && !winnerMessage.textContent) {
+        board[row][col] = currentPlayer;
+        event.target.textContent = currentPlayer;
+        event.target.classList.add(currentPlayer === 'X' ? 'player-x' : 'player-o');
 
-  board[clickedCellIndex] = currentPlayer;
-  clickedCell.textContent = currentPlayer;
-
-  // Apply color based on the current player
-  if (currentPlayer === 'X') {
-    clickedCell.style.backgroundColor = '#ffcccb'; // Light red for X
-  } else {
-    clickedCell.style.backgroundColor = '#add8e6'; // Light blue for O
-  }
-
-  checkResult();
-}
-
-function checkResult() {
-  let roundWon = false;
-
-  for (let i = 0; i < winningConditions.length; i++) {
-    const [a, b, c] = winningConditions[i];
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      roundWon = true;
-      break;
+        if (checkWin(currentPlayer)) {
+            winnerMessage.textContent = `Player ${currentPlayer} wins!`;
+            congratulationsMessage.textContent = `Congratulations, Player ${currentPlayer}!`;
+            setTimeout(() => {
+                size = size < 5 ? size + 1 : 3; // Increment size or reset to 3
+                initializeBoard();
+            }, 2000);
+        } else {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        }
     }
-  }
-
-  if (roundWon) {
-    message.textContent = `Player ${currentPlayer} has won!`;
-    congratulations.classList.remove('hidden');
-    congratulations.style.display = 'block';
-    gameActive = false;
-    return;
-  }
-
-  if (!board.includes('')) {
-    message.textContent = 'Game ended in a draw!';
-    gameActive = false;
-    return;
-  }
-
-  currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
 }
 
-function resetGame() {
-  board = ['', '', '', '', '', '', '', '', ''];
-  gameActive = true;
-  currentPlayer = 'X';
-  message.textContent = '';
-  cells.forEach(cell => {
-    cell.textContent = '';
-    cell.style.backgroundColor = ''; // Reset background color
-  });
-  congratulations.classList.add('hidden');
-  congratulations.style.display = 'none';
+function checkWin(player) {
+    // Check all rows
+    for (let i = 0; i < size; i++) {
+        if (board[i].every(cell => cell === player)) {
+            return true;
+        }
+    }
+
+    // Check all columns
+    for (let j = 0; j < size; j++) {
+        if (board.map(row => row[j]).every(cell => cell === player)) {
+            return true;
+        }
+    }
+
+    // Check diagonals
+    if (board.map((row, i) => row[i]).every(cell => cell === player)) {
+        return true;
+    }
+    if (board.map((row, i) => row[size - 1 - i]).every(cell => cell === player)) {
+        return true;
+    }
+
+    return false;
 }
 
-cells.forEach(cell => cell.addEventListener('click', handleCellClick));
-resetButton.addEventListener('click', resetGame);
+resetButton.addEventListener('click', initializeBoard);
+initializeBoard();
