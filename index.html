@@ -4,26 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic Tac Toe</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+        }
+        .board {
+            display: grid;
+            gap: 5px;
+            margin: 20px;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            border: 2px solid #000;
+        }
+        .winner {
+            color: green;
+            margin-top: 20px;
+            font-size: 20px;
+        }
+        .congratulations {
+            color: blue;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .player-x {
+            background-color: #ffcccb; /* Light red for X */
+        }
+        .player-o {
+            background-color: #add8e6; /* Light blue for O */
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Tic Tac Toe</h1>
-        <div id="board">
-            <div class="cell" data-index="0"></div>
-            <div class="cell" data-index="1"></div>
-            <div class="cell" data-index="2"></div>
-            <div class="cell" data-index="3"></div>
-            <div class="cell" data-index="4"></div>
-            <div class="cell" data-index="5"></div>
-            <div class="cell" data-index="6"></div>
-            <div class="cell" data-index="7"></div>
-            <div class="cell" data-index="8"></div>
-        </div>
-        <div id="message"></div>
-        <button id="reset">Reset Game</button>
-    </div>
-    <div id="congratulations" class="hidden">Congratulations! You won!</div>
+    <h1>Tic-Tac-Toe</h1>
+    <div class="board" id="board"></div>
+    <button id="reset">Reset</button>
+    <div class="winner" id="winnerMessage"></div>
+    <div class="congratulations" id="congratulationsMessage"></div>
     <script src="app.js"></script>
 </body>
 </html>
