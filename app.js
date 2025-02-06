@@ -1,79 +1,382 @@
-const boardElement = document.getElementById('board');
-const winnerMessage = document.getElementById('winnerMessage');
-const congratulationsMessage = document.getElementById('congratulationsMessage');
-const resetButton = document.getElementById('reset');
-let size = 3; // Start with a 3x3 board
-let board = [];
 let currentPlayer = 'X';
+let gameBoard = [];
+let gameActive = true;
+let currentGameMode = null;
+let humanPlayer = 'X';
+let aiPlayer = 'O';
+let isAITurn = false;
+let currentLevel = 1;
+let gridSize = 3;
+let consecutiveWins = 0;
+let winRequirements = 3;
+let winsX = 0, winsO = 0;
 
-function initializeBoard() {
-    boardElement.innerHTML = '';
-    board = Array.from({ length: size }, () => Array(size).fill(''));
-    winnerMessage.textContent = '';
-    congratulationsMessage.textContent = '';
+(function init() {
+    loadGameState();
+    updateGameInfo();
+})();
 
-    boardElement.style.gridTemplateColumns = `repeat(${size}, 50px)`;
-    boardElement.style.gridTemplateRows = `repeat(${size}, 50px)`;
-
-    for (let i = 0; i < size; i++) {
-        for (let j = 0; j < size; j++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.dataset.row = i;
-            cell.dataset.col = j;
-            cell.addEventListener('click', handleCellClick);
-            boardElement.appendChild(cell);
-        }
+function setGameMode(mode) {
+    currentGameMode = mode;
+    document.getElementById('modeSelection').style.display = 'none';
+    if (mode === 'pvai') {
+        document.getElementById('sideSelection').style.display = 'block';
+    } else {
+        initializeGame();
     }
 }
 
-function handleCellClick(event) {
-    const row = event.target.dataset.row;
-    const col = event.target.dataset.col;
+function setPlayerSide(side) {
+    humanPlayer = side;
+    aiPlayer = side === 'X' ? 'O' : 'X';
+    document.getElementById('sideSelection').style.display = 'none';
+    initializeGame();
+}
 
-    if (board[row][col] === '' && !winnerMessage.textContent) {
-        board[row][col] = currentPlayer;
-        event.target.textContent = currentPlayer;
-        event.target.classList.add(currentPlayer === 'X' ? 'player-x' : 'player-o');
+function initializeGame() {
+    document.getElementById('gameContainer').style.display = 'block';
+    createBoard();
+    resetGame();
+}
 
-        if (checkWin(currentPlayer)) {
-            winnerMessage.textContent = `Player ${currentPlayer} wins!`;
-            congratulationsMessage.textContent = `Congratulations, Player ${currentPlayer}!`;
-            setTimeout(() => {
-                size = size < 5 ? size + 1 : 3; // Increment size or reset to 3
-                initializeBoard();
-            }, 2000);
-        } else {
-            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-        }
+function createBoard() {
+    const boardContainer = document.getElementById('boardContainer');
+    boardContainer.innerHTML = '';
+    
+    const board = document.createElement('div');
+    board.className = 'board';
+    board.style.gridTemplateColumns = `repeat(${gridSize}, minmax(50px, 80px))`;
+    gameBoard = Array(gridSize * gridSize).fill('');
+
+    for (let i = 0; i < gridSize * gridSize; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.setAttribute('data-index', i);
+        cell.setAttribute('data-player', '');
+        cell.addEventListener('click', handleCellClick);
+        board.appendChild(cell);
     }
+    boardContainer.appendChild(board);
+    updateGameInfo();
+}
+
+function handleCellClick(e) {
+    if (!gameActive || (currentGameMode === 'pvai' && isAITurn)) return;
+    
+    const cell = e.target;
+    const index = parseInt(cell.getAttribute('data-index'));
+    if (gameBoard[index] !== '') return;
+
+    makeMove(cell, index, currentPlayer);
+    if (currentGameMode === 'pvai' && gameActive) {
+        isAITurn = true;
+        setTimeout(makeAIMove, 500);
+    }
+}
+
+function makeMove(cell, index, player) {
+    gameBoard[index] = player;
+    cell.textContent = player;
+    cell.setAttribute('data-player', player);
+    
+    if (checkWin(player)) {
+        handleWin(player);
+        return;
+    }
+    
+    if (checkDraw()) {
+        handleDraw();
+        return;
+    }
+    
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    updateGameStatus();
 }
 
 function checkWin(player) {
-    // Check all rows
-    for (let i = 0; i < size; i++) {
-        if (board[i].every(cell => cell === player)) {
-            return true;
+    let winningCombo = [];
+    const winLength = Math.min(gridSize, 3);
+
+    // Check rows
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col <= gridSize - winLength; col++) {
+            let win = true;
+            const combo = [];
+            for (let i = 0; i < winLength; i++) {
+                const pos = row * gridSize + col + i;
+                combo.push(pos);
+                if (gameBoard[pos] !== player) win = false;
+            }
+            if (win) {
+                winningCombo = combo;
+                break;
+            }
         }
+        if (winningCombo.length) break;
     }
 
-    // Check all columns
-    for (let j = 0; j < size; j++) {
-        if (board.map(row => row[j]).every(cell => cell === player)) {
-            return true;
+    // Check columns
+    if (!winningCombo.length) {
+        for (let col = 0; col < gridSize; col++) {
+            for (let row = 0; row <= gridSize - winLength; row++) {
+                let win = true;
+                const combo = [];
+                for (let i = 0; i < winLength; i++) {
+                    const pos = (row + i) * gridSize + col;
+                    combo.push(pos);
+                    if (gameBoard[pos] !== player) win = false;
+                }
+                if (win) {
+                    winningCombo = combo;
+                    break;
+                }
+            }
+            if (winningCombo.length) break;
         }
     }
 
     // Check diagonals
-    if (board.map((row, i) => row[i]).every(cell => cell === player)) {
-        return true;
-    }
-    if (board.map((row, i) => row[size - 1 - i]).every(cell => cell === player)) {
-        return true;
+    if (!winningCombo.length) {
+        // Top-left to bottom-right
+        for (let row = 0; row <= gridSize - winLength; row++) {
+            for (let col = 0; col <= gridSize - winLength; col++) {
+                let win = true;
+                const combo = [];
+                for (let i = 0; i < winLength; i++) {
+                    const pos = (row + i) * gridSize + (col + i);
+                    combo.push(pos);
+                    if (gameBoard[pos] !== player) win = false;
+                }
+                if (win) {
+                    winningCombo = combo;
+                    break;
+                }
+            }
+            if (winningCombo.length) break;
+        }
+
+        // Top-right to bottom-left
+        if (!winningCombo.length) {
+            for (let row = 0; row <= gridSize - winLength; row++) {
+                for (let col = winLength - 1; col < gridSize; col++) {
+                    let win = true;
+                    const combo = [];
+                    for (let i = 0; i < winLength; i++) {
+                        const pos = (row + i) * gridSize + (col - i);
+                        combo.push(pos);
+                        if (gameBoard[pos] !== player) win = false;
+                    }
+                    if (win) {
+                        winningCombo = combo;
+                        break;
+                    }
+                }
+                if (winningCombo.length) break;
+            }
+        }
     }
 
+    if (winningCombo.length) {
+        winningCombo.forEach(index => {
+            document.querySelector(`[data-index="${index}"]`).classList.add('winning-cell');
+        });
+        return true;
+    }
     return false;
 }
 
-resetButton.addEventListener('click', initializeBoard);
-initializeBoard();
+function checkDraw() {
+    return gameBoard.every(cell => cell !== '');
+}
+
+function handleWin(player) {
+    gameActive = false;
+    let winMessage = '';
+    
+    if (currentGameMode === 'pvai') {
+        if (player === humanPlayer) {
+            winsX += humanPlayer === 'X' ? 1 : 0;
+            winsO += humanPlayer === 'O' ? 1 : 0;
+            consecutiveWins++;
+            winMessage = `Good job! Wins: ${consecutiveWins}/${winRequirements}`;
+            
+            if (consecutiveWins >= winRequirements) {
+                currentLevel++;
+                gridSize++;
+                winRequirements = Math.min(gridSize, 5);
+                consecutiveWins = 0;
+                setTimeout(() => {
+                    alert(`Level up! Now playing on ${gridSize}x${gridSize}`);
+                }, 1000);
+            }
+        } else {
+            winMessage = 'AI wins!';
+            consecutiveWins = 0;
+            currentLevel = Math.max(1, currentLevel - 0.3);
+        }
+    } else {
+        player === 'X' ? winsX++ : winsO++;
+        winMessage = `Player ${player} wins!`;
+    }
+    
+    updateStatus(winMessage);
+    saveGameState();
+    setTimeout(resetGame, 2000);
+}
+
+function handleDraw() {
+    gameActive = false;
+    updateStatus("Draw Game!");
+    saveGameState();
+    setTimeout(resetGame, 2000);
+}
+
+function makeAIMove() {
+    if (!isAITurn || !gameActive) return;
+    
+    // 60% chance for smart move, 40% random
+    if (gridSize === 3 && Math.random() < 0.4) {
+        const emptyCells = gameBoard.map((cell, i) => cell === '' ? i : null).filter(i => i !== null);
+        if (emptyCells.length > 0) {
+            const move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            setTimeout(() => makeMove(document.querySelector(`[data-index="${move}"]`), move, aiPlayer), 500);
+            isAITurn = false;
+            return;
+        }
+    }
+
+    // Find moves
+    const findWinningMove = player => {
+        for (let i = 0; i < gameBoard.length; i++) {
+            if (gameBoard[i] === '') {
+                gameBoard[i] = player;
+                if (checkWin(player)) {
+                    gameBoard[i] = '';
+                    return i;
+                }
+                gameBoard[i] = '';
+            }
+        }
+        return -1;
+    };
+
+    // Try to win
+    const winMove = findWinningMove(aiPlayer);
+    if (winMove !== -1) {
+        setTimeout(() => makeMove(document.querySelector(`[data-index="${winMove}"]`), winMove, aiPlayer), 500);
+        isAITurn = false;
+        return;
+    }
+
+    // Block player sometimes
+    if (Math.random() < 0.8) {
+        const blockMove = findWinningMove(humanPlayer);
+        if (blockMove !== -1) {
+            setTimeout(() => makeMove(document.querySelector(`[data-index="${blockMove}"]`), blockMove, aiPlayer), 500);
+            isAITurn = false;
+            return;
+        }
+    }
+
+    // Prefer center/corners in 3x3
+    if (gridSize === 3) {
+        const center = 4;
+        if (gameBoard[center] === '') {
+            setTimeout(() => makeMove(document.querySelector(`[data-index="${center}"]`), center, aiPlayer), 500);
+            isAITurn = false;
+            return;
+        }
+
+        const corners = [0, 2, 6, 8];
+        const availableCorners = corners.filter(i => gameBoard[i] === '');
+        if (availableCorners.length > 0) {
+            const move = availableCorners[Math.floor(Math.random() * availableCorners.length)];
+            setTimeout(() => makeMove(document.querySelector(`[data-index="${move}"]`), move, aiPrayer), 500);
+            isAITurn = false;
+            return;
+        }
+    }
+
+    // Random fallback
+    const emptyCells = gameBoard
+        .map((cell, index) => cell === '' ? index : null)
+        .filter(index => index !== null);
+        
+    if (emptyCells.length > 0) {
+        const move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        setTimeout(() => makeMove(document.querySelector(`[data-index="${move}"]`), move, aiPlayer), 500);
+    }
+    
+    isAITurn = false;
+}
+
+function resetGame() {
+    gameBoard = Array(gridSize * gridSize).fill('');
+    gameActive = true;
+    currentPlayer = 'X';
+    
+    document.querySelectorAll('.cell').forEach(cell => {
+        cell.textContent = '';
+        cell.setAttribute('data-player', '');
+        cell.classList.remove('winning-cell');
+    });
+    
+    if (currentGameMode === 'pvai') {
+        isAITurn = aiPlayer === 'X';
+        if (isAITurn) makeAIMove();
+    }
+    
+    updateGameStatus();
+}
+
+function updateGameStatus() {
+    document.getElementById('currentLevel').textContent = Math.ceil(currentLevel);
+    document.getElementById('gridSize').textContent = `${gridSize}x${gridSize}`;
+    document.getElementById('winsNeeded').textContent = winRequirements - consecutiveWins;
+    document.getElementById('winsX').textContent = winsX;
+    document.getElementById('winsO').textContent = winsO;
+    
+    const statusText = currentGameMode === 'pvai' ? 
+        `Your turn ➤ (Level ${Math.ceil(currentLevel)})` : 
+        `Current Player: ${currentPlayer}`;
+    updateStatus(statusText);
+}
+
+function updateStatus(message) {
+    document.getElementById('status').textContent = message;
+}
+
+function resetProgress() {
+    currentLevel = 1;
+    consecutiveWins = 0;
+    gridSize = 3;
+    winRequirements = 3;
+    winsX = 0;
+    winsO = 0;
+    saveGameState();
+    resetGame();
+}
+
+function saveGameState() {
+    localStorage.setItem('gameState', JSON.stringify({
+        currentLevel: Math.ceil(currentLevel * 100) / 100,
+        consecutiveWins,
+        gridSize,
+        winRequirements,
+        winsX,
+        winsO
+    }));
+}
+
+function loadGameState() {
+    const saved = localStorage.getItem('gameState');
+    if (saved) {
+        const state = JSON.parse(saved);
+        currentLevel = state.currentLevel || 1;
+        consecutiveWins = state.consecutiveWins || 0;
+        gridSize = state.gridSize || 3;
+        winRequirements = state.winRequirements || 3;
+        winsX = state.winsX || 0;
+        winsO = state.winsO || 0;
+    }
+}
