@@ -1,3 +1,5 @@
+// app.js
+
 let currentPlayer = 'X';
 let gameBoard = [];
 let gameActive = true;
@@ -42,12 +44,10 @@ function initializeGame() {
 function createBoard() {
     const boardContainer = document.getElementById('boardContainer');
     boardContainer.innerHTML = '';
-    
     const board = document.createElement('div');
     board.className = 'board';
     board.style.gridTemplateColumns = `repeat(${gridSize}, minmax(50px, 80px))`;
     gameBoard = Array(gridSize * gridSize).fill('');
-
     for (let i = 0; i < gridSize * gridSize; i++) {
         const cell = document.createElement('div');
         cell.className = 'cell';
@@ -62,15 +62,13 @@ function createBoard() {
 
 function handleCellClick(e) {
     if (!gameActive || (currentGameMode === 'pvai' && isAITurn)) return;
-    
     const cell = e.target;
     const index = parseInt(cell.getAttribute('data-index'));
     if (gameBoard[index] !== '') return;
-
     makeMove(cell, index, currentPlayer);
     if (currentGameMode === 'pvai' && gameActive) {
         isAITurn = true;
-        setTimeout(makeAIMove, 500);
+        setTimeout(makeAIMove, 500); // Trigger AI move after player's turn
     }
 }
 
@@ -78,17 +76,14 @@ function makeMove(cell, index, player) {
     gameBoard[index] = player;
     cell.textContent = player;
     cell.setAttribute('data-player', player);
-    
     if (checkWin(player)) {
         handleWin(player);
         return;
     }
-    
     if (checkDraw()) {
         handleDraw();
         return;
     }
-    
     currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
     updateGameStatus();
 }
@@ -96,7 +91,6 @@ function makeMove(cell, index, player) {
 function checkWin(player) {
     let winningCombo = [];
     const winLength = Math.min(gridSize, 3);
-
     // Check rows
     for (let row = 0; row < gridSize; row++) {
         for (let col = 0; col <= gridSize - winLength; col++) {
@@ -114,7 +108,6 @@ function checkWin(player) {
         }
         if (winningCombo.length) break;
     }
-
     // Check columns
     if (!winningCombo.length) {
         for (let col = 0; col < gridSize; col++) {
@@ -134,7 +127,6 @@ function checkWin(player) {
             if (winningCombo.length) break;
         }
     }
-
     // Check diagonals
     if (!winningCombo.length) {
         // Top-left to bottom-right
@@ -154,7 +146,6 @@ function checkWin(player) {
             }
             if (winningCombo.length) break;
         }
-
         // Top-right to bottom-left
         if (!winningCombo.length) {
             for (let row = 0; row <= gridSize - winLength; row++) {
@@ -175,7 +166,6 @@ function checkWin(player) {
             }
         }
     }
-
     if (winningCombo.length) {
         winningCombo.forEach(index => {
             document.querySelector(`[data-index="${index}"]`).classList.add('winning-cell');
@@ -192,24 +182,24 @@ function checkDraw() {
 function handleWin(player) {
     gameActive = false;
     let winMessage = '';
-    
     if (currentGameMode === 'pvai') {
         if (player === humanPlayer) {
             winsX += humanPlayer === 'X' ? 1 : 0;
             winsO += humanPlayer === 'O' ? 1 : 0;
             consecutiveWins++;
             winMessage = `Good job! Wins: ${consecutiveWins}/${winRequirements}`;
-            
             if (consecutiveWins >= winRequirements) {
                 currentLevel++;
-                gridSize++;
-                winRequirements = Math.min(gridSize, 5);
+                gridSize++; // Increase grid size
+                winRequirements = Math.min(gridSize, 5); // Update win requirements
                 consecutiveWins = 0;
                 setTimeout(() => {
                     alert(`Level up! Now playing on ${gridSize}x${gridSize}`);
                 }, 1000);
             }
         } else {
+            winsX += aiPlayer === 'X' ? 1 : 0; // Increment winsX if AI is 'X'
+            winsO += aiPlayer === 'O' ? 1 : 0; // Increment winsO if AI is 'O'
             winMessage = 'AI wins!';
             consecutiveWins = 0;
             currentLevel = Math.max(1, currentLevel - 0.3);
@@ -218,7 +208,6 @@ function handleWin(player) {
         player === 'X' ? winsX++ : winsO++;
         winMessage = `Player ${player} wins!`;
     }
-    
     updateStatus(winMessage);
     saveGameState();
     setTimeout(resetGame, 2000);
@@ -233,17 +222,6 @@ function handleDraw() {
 
 function makeAIMove() {
     if (!isAITurn || !gameActive) return;
-    
-    // 60% chance for smart move, 40% random
-    if (gridSize === 3 && Math.random() < 0.4) {
-        const emptyCells = gameBoard.map((cell, i) => cell === '' ? i : null).filter(i => i !== null);
-        if (emptyCells.length > 0) {
-            const move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-            setTimeout(() => makeMove(document.querySelector(`[data-index="${move}"]`), move, aiPlayer), 500);
-            isAITurn = false;
-            return;
-        }
-    }
 
     // Find moves
     const findWinningMove = player => {
@@ -286,12 +264,11 @@ function makeAIMove() {
             isAITurn = false;
             return;
         }
-
         const corners = [0, 2, 6, 8];
         const availableCorners = corners.filter(i => gameBoard[i] === '');
         if (availableCorners.length > 0) {
             const move = availableCorners[Math.floor(Math.random() * availableCorners.length)];
-            setTimeout(() => makeMove(document.querySelector(`[data-index="${move}"]`), move, aiPrayer), 500);
+            setTimeout(() => makeMove(document.querySelector(`[data-index="${move}"]`), move, aiPlayer), 500);
             isAITurn = false;
             return;
         }
@@ -301,12 +278,10 @@ function makeAIMove() {
     const emptyCells = gameBoard
         .map((cell, index) => cell === '' ? index : null)
         .filter(index => index !== null);
-        
     if (emptyCells.length > 0) {
         const move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
         setTimeout(() => makeMove(document.querySelector(`[data-index="${move}"]`), move, aiPlayer), 500);
     }
-    
     isAITurn = false;
 }
 
@@ -314,18 +289,16 @@ function resetGame() {
     gameBoard = Array(gridSize * gridSize).fill('');
     gameActive = true;
     currentPlayer = 'X';
-    
+    createBoard(); // Recreate the board with updated gridSize
     document.querySelectorAll('.cell').forEach(cell => {
         cell.textContent = '';
         cell.setAttribute('data-player', '');
         cell.classList.remove('winning-cell');
     });
-    
     if (currentGameMode === 'pvai') {
         isAITurn = aiPlayer === 'X';
-        if (isAITurn) makeAIMove();
+        if (isAITurn) makeAIMove(); // Ensure AI makes the first move if it starts
     }
-    
     updateGameStatus();
 }
 
@@ -335,7 +308,6 @@ function updateGameStatus() {
     document.getElementById('winsNeeded').textContent = winRequirements - consecutiveWins;
     document.getElementById('winsX').textContent = winsX;
     document.getElementById('winsO').textContent = winsO;
-    
     const statusText = currentGameMode === 'pvai' ? 
         `Your turn ➤ (Level ${Math.ceil(currentLevel)})` : 
         `Current Player: ${currentPlayer}`;
